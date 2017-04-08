@@ -2,10 +2,10 @@
 **Caner Irfanoglu**
 **7/4/2017**
 
-#Introduction
+# Introduction
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
-#Data
+# Data
 The training data for this project are available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
 
@@ -14,7 +14,7 @@ https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
 
 
 
-#Purpose
+# Purpose
 
 Wearable computing data is consisted of **160 variables including measurements for 5 types of**
 **body postures** for 6 different subjects. The purpose of this study is to develop a supervised
@@ -22,7 +22,7 @@ machine learning algorithm to **classify which body posture is being performed**
 Steps taken to construct the final algorithm is the scope of the study and it will be finalized with the
 predictions on the test data.
 
-#Loading the Data and Required Libraries
+# Loading the Data and Required Libraries
 
 
 ```r
@@ -43,7 +43,7 @@ pmldata <- read.csv(pathtrain,na.strings=c('#DIV/0!', '', 'NA')) #reading csv fi
 pmlfinaltest <- read.csv(pathtest,na.strings=c('#DIV/0!', '', 'NA'))
 ```
 
-#Creating Training and Test Sets
+# Creating Training and Test Sets
 
 ```r
 set.seed(42318) #setting seed for reproducibility purposes
@@ -56,7 +56,7 @@ pmltrain <- pmldata[inTrain,]
 pmltest <- pmldata[-inTrain,]
 ```
 
-#Data Cleaning and Exploratory Analysis
+# Data Cleaning and Exploratory Analysis
 
 ```r
 dim(pmltrain) #training set dimensions before cleaning
@@ -120,12 +120,12 @@ str(pmltrain$classe) #Features of the dependent variable (prediction variable)
 ##  Factor w/ 5 levels "A","B","C","D",..: 1 1 1 1 1 1 1 1 1 1 ...
 ```
 
-#Model Creation
+# Model Creation
 As it can be seen on the exploratory analysis, the prediction variable classe is a categorical 
 variable with 5 possible outcomes. To classify, the outcome accurately logistic regression can be used.
 Since, the outcome is non-binary, multinomial logistic regression will be applied first.
 
-###Trying logistic regression 
+### Trying logistic regression 
 
 ```r
 fit_log <- multinom(classe ~ .,data = pmltrain)
@@ -190,7 +190,7 @@ acc_log
 
 The following results indicate that the multinomial logistic model has around **68.5%** accuracy. 
 
-###Trying regression tree
+### Trying regression tree
 
 ```r
 fit_rpart  <- rpart(classe ~ .,data = pmltrain)
@@ -235,7 +235,7 @@ acc_rpart
 
 By using a regression tree accuracy is increased to **74** %. 
 
-###Trying random forest
+### Trying random forest
 
 ```r
 fit_rf <- randomForest(classe ~ ., data = pmltrain)
@@ -287,13 +287,13 @@ plot(fit_rf,main = "Sample error % vs. number of trees")
 
 By using a random forest model an accuracy of **99.67** % is achieved.Also, **expected out of sample error is calculated as 0.0033**.Since random forest provides higher accuracy, sensitivity and specificity  it is chosen as the appropriate model fit for the prediction.
 
-#Cross Validation
+# Cross Validation
 Since the first two models are not chosen, cross validation is not done.Breiman & Cutler, n.d.
 stated that, in random forests, **there is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error. It is estimated internally, during the run**, as follows:
 Each tree is constructed using a different bootstrap sample from the original data. About one-third of the cases are left out of the bootstrap sample and not used in the construction of the kth tree.
 
 
-#Predicting Test Set and Saving Results
+# Predicting Test Set and Saving Results
 
 ```r
 pred_test <- predict(fit_rf,pmlfinaltest)
@@ -318,7 +318,7 @@ pmlwrite = function(x){
 #pml_write_files(pred_test)
 ```
 
-#References
+# References
 
 * Random Forests Leo Breiman and Adele Cutler. (n.d.). Retrieved April 07, 2017, from https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr
 
