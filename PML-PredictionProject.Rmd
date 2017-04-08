@@ -1,0 +1,159 @@
+---
+title: "Practical Machine Learning Prediction Project"
+
+output: html_document
+---
+**Caner Irfanoglu**
+**7/4/2017**
+
+#Introduction
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+#Data
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+
+#Purpose
+
+Wearable computing data is consisted of **160 variables including measurements for 5 types of**
+**body postures** for 6 different subjects. The purpose of this study is to develop a supervised
+machine learning algorithm to **classify which body posture is being performed** with high accuracy.
+Steps taken to construct the final algorithm is the scope of the study and it will be finalized with the
+predictions on the test data.
+
+#Loading the Data and Required Libraries
+
+```{r,echo=TRUE, message=FALSE, warning=FALSE}
+library(caret) ; library(nnet) ; library(randomForest) ; library(rpart)
+```
+
+The main data is saved under **pmldata** variable and data for test cases is saved as **pmlfinaltest.** 
+
+```{r,echo=TRUE}
+pathtrain <- file.path("/Users/Caner/Desktop/Data/Coursera-Machine Learning/pml-training.csv") #setting path
+pathtest <- file.path("/Users/Caner/Desktop/Data/Coursera-Machine Learning/pml-testing.csv") 
+```
+
+```{r,echo=TRUE}
+pmldata <- read.csv(pathtrain,na.strings=c('#DIV/0!', '', 'NA')) #reading csv files with NA treatment
+pmlfinaltest <- read.csv(pathtest,na.strings=c('#DIV/0!', '', 'NA'))
+``` 
+
+#Creating Training and Test Sets
+```{r,echo=TRUE}
+set.seed(42318) #setting seed for reproducibility purposes
+```
+
+```{r,echo=TRUE}
+inTrain <- createDataPartition(y=pmldata$X,p=0.75,list=FALSE) #75-25 % split
+pmltrain <- pmldata[inTrain,]
+pmltest <- pmldata[-inTrain,]
+```
+
+#Data Cleaning and Exploratory Analysis
+```{r,echo=TRUE}
+dim(pmltrain) #training set dimensions before cleaning
+dim(pmltest) #test set dimensions before cleaning
+```
+
+Removing variables with > 95% NA
+
+```{r,echo=TRUE}
+NAratiosbycolumn <- sapply(pmltrain,function(x){sum(is.na(x))/length(pmltrain$X)})
+NAmore95 <- which(NAratiosbycolumn > 0.95)
+pmltrain <- pmltrain[,-NAmore95] 
+pmltest <- pmltest[,-NAmore95]
+```
+
+Removing nearzero-variance variables
+```{r,echo=TRUE}
+lowvar <- nearZeroVar(pmltrain)
+pmltrain <- pmltrain[,-lowvar] 
+pmltest <- pmltest[,-lowvar]
+```
+
+Removing non-related to Prediction variables 
+```{r,echo=TRUE}
+pmltrain <- pmltrain[,-c(1:5)]
+pmltest <- pmltest[,-c(1:5)]
+dim(pmltrain) #training set dimensions after cleaning
+dim(pmltest) #testing set dimensions after cleaning
+str(pmltrain$classe) #Features of the dependent variable (prediction variable)
+```
+
+#Model Creation
+As it can be seen on the exploratory analysis, the prediction variable classe is a categorical 
+variable with 5 possible outcomes. To classify, the outcome accurately logistic regression can be used.
+Since, the outcome is non-binary, multinomial logistic regression will be applied first.
+
+###Trying logistic regression 
+```{r,echo=TRUE}
+fit_log <- multinom(classe ~ .,data = pmltrain)
+pred_log <- predict(fit_log,pmltest)
+acc_log <- confusionMatrix(pred_log,pmltest$classe)
+acc_log
+```
+
+The following results indicate that the multinomial logistic model has around **68.5%** accuracy. 
+
+###Trying regression tree
+```{r,echo=TRUE}
+fit_rpart  <- rpart(classe ~ .,data = pmltrain)
+pred_rpart <- predict(fit_rpart,pmltest,type = "class")
+acc_rpart <- confusionMatrix(pred_rpart,pmltest$classe)
+acc_rpart
+```
+
+By using a regression tree accuracy is increased to **74** %. 
+
+###Trying random forest
+```{r,echo=TRUE}
+fit_rf <- randomForest(classe ~ ., data = pmltrain)
+pred_rf <- predict(fit_rf,pmltest)
+acc_rf <- confusionMatrix(pred_rf,pmltest$classe) 
+acc_rf
+``` 
+
+```{r,echo=TRUE}
+plot(fit_rf,main = "Sample error % vs. number of trees")
+```
+
+By using a random forest model an accuracy of **99.67** % is achieved.Also, **expected out of sample error is calculated as 0.0033**.Since random forest provides higher accuracy, sensitivity and specificity  it is chosen as the appropriate model fit for the prediction.
+
+#Cross Validation
+Since the first two models are not chosen, cross validation is not done.Breiman & Cutler, n.d.
+stated that, in random forests, **there is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error. It is estimated internally, during the run**, as follows:
+Each tree is constructed using a different bootstrap sample from the original data. About one-third of the cases are left out of the bootstrap sample and not used in the construction of the kth tree.
+
+
+#Predicting Test Set and Saving Results
+```{r,echo=TRUE}
+pred_test <- predict(fit_rf,pmlfinaltest)
+pred_test
+```
+
+```{r,echo=TRUE}
+pmlwrite = function(x){
+    l = length(x)
+        filename = paste0("predictions.txt") #results are written in predictions.txt in the current dir.
+        write.table(x[1:l],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+    
+}
+
+#pml_write_files(pred_test)
+```
+
+#References
+
+* Random Forests Leo Breiman and Adele Cutler. (n.d.). Retrieved April 07, 2017, from https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr
+
+* Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.
+
+Thank you for being kind enough to share your research with public.
+
+
